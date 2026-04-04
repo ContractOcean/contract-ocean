@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/AuthContext';
-import { ProtectedRoute, PublicRoute } from './lib/ProtectedRoute';
+import { ProtectedRoute, PublicRoute, OnboardingRoute } from './lib/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import OnboardingPage from './pages/auth/OnboardingPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ContractsPage from './pages/contracts/ContractsPage';
 import TemplatesPage from './pages/templates/TemplatesPage';
@@ -26,6 +27,9 @@ function App() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+
+          {/* Onboarding — requires auth but not onboarding completion */}
+          <Route path="/onboarding" element={<OnboardingRoute><OnboardingPage /></OnboardingRoute>} />
 
           {/* Protected app routes — redirect to login if not authenticated */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
