@@ -10,11 +10,28 @@ export interface Contact {
   company: string;
   phone: string;
   tags: string[];
-  contract_count: number;
+  contractCount: number;
   status: 'active' | 'inactive';
-  last_activity: string;
-  owner_id: string;
-  created_at: string;
+  lastActivity: string;
+  createdAt: string;
+}
+
+// Map Supabase snake_case → app camelCase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapContact(row: any): Contact {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email || '',
+    role: row.role || '',
+    company: row.company || '',
+    phone: row.phone || '',
+    tags: row.tags || [],
+    contractCount: row.contract_count || 0,
+    status: row.status || 'active',
+    lastActivity: row.last_activity || row.created_at,
+    createdAt: row.created_at,
+  };
 }
 
 interface UseContactsReturn {
@@ -45,7 +62,7 @@ export function useContacts(): UseContactsReturn {
     if (err) {
       setError(err.message);
     } else {
-      setContacts((data as Contact[]) || []);
+      setContacts((data || []).map(mapContact));
     }
     setLoading(false);
   }, [user]);
@@ -73,9 +90,11 @@ export function useContacts(): UseContactsReturn {
       .single();
 
     if (!err && data) {
-      setContacts((prev) => [data as Contact, ...prev]);
+      const mapped = mapContact(data);
+      setContacts((prev) => [mapped, ...prev]);
+      return { data: mapped, error: null };
     }
-    return { data: data as Contact | null, error: err?.message ?? null };
+    return { data: null, error: err?.message ?? null };
   }
 
   return {

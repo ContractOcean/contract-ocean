@@ -31,7 +31,8 @@ import {
   Calendar,
   Briefcase,
 } from 'lucide-react';
-import { teamMembers } from '../../data/mockData';
+// Team members — empty for new users, populated from Supabase
+const teamMembers: { id: string; name: string; email: string; role: string; contractsOwned: number; lastActive: string }[] = [];
 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 

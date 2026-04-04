@@ -6,16 +6,34 @@ export interface Contract {
   id: string;
   name: string;
   counterparty: string;
-  owner_id: string;
-  owner_name: string;
+  owner: string;
   category: string;
   status: 'draft' | 'in_review' | 'sent' | 'awaiting_signature' | 'signed' | 'completed' | 'expiring_soon' | 'archived';
-  created_at: string;
-  updated_at: string;
-  expiry_date: string;
+  createdDate: string;
+  lastUpdated: string;
+  expiryDate: string;
   value: number;
-  signature_status: string;
+  signatureStatus: string;
   content: unknown;
+}
+
+// Map Supabase snake_case → app camelCase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapContract(row: any): Contract {
+  return {
+    id: row.id,
+    name: row.name,
+    counterparty: row.counterparty,
+    owner: row.owner_name || '',
+    category: row.category,
+    status: row.status,
+    createdDate: row.created_at,
+    lastUpdated: row.updated_at,
+    expiryDate: row.expiry_date,
+    value: Number(row.value) || 0,
+    signatureStatus: row.signature_status,
+    content: row.content,
+  };
 }
 
 interface UseContractsReturn {
@@ -46,7 +64,7 @@ export function useContracts(): UseContractsReturn {
     if (err) {
       setError(err.message);
     } else {
-      setContracts((data as Contract[]) || []);
+      setContracts((data || []).map(mapContract));
     }
     setLoading(false);
   }, [user]);
@@ -66,17 +84,19 @@ export function useContracts(): UseContractsReturn {
         category: contract.category || 'Service',
         status: contract.status || 'draft',
         value: contract.value || 0,
-        signature_status: contract.signature_status || 'Not sent',
+        signature_status: contract.signatureStatus || 'Not sent',
         content: contract.content || null,
-        expiry_date: contract.expiry_date || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        expiry_date: contract.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select()
       .single();
 
     if (!err && data) {
-      setContracts((prev) => [data as Contract, ...prev]);
+      const mapped = mapContract(data);
+      setContracts((prev) => [mapped, ...prev]);
+      return { data: mapped, error: null };
     }
-    return { data: data as Contract | null, error: err?.message ?? null };
+    return { data: null, error: err?.message ?? null };
   }
 
   return {

@@ -3,70 +3,25 @@ import { useAuth } from '../../lib/AuthContext';
 import {
   Search, Bell, HelpCircle, ChevronDown, Plus,
   BookOpen, FileText, HeadphonesIcon, MessageSquare,
-  CheckCircle2, AlertTriangle, Send, PenLine, ExternalLink,
+  CheckCircle2, Send, PenLine, ExternalLink,
   X, Rocket, Star, Zap, Shield,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // ─── Notification data ──────────────────────────────────────────────────────
 
-const notifications = [
-  {
-    id: 1,
-    type: 'signed',
-    title: 'Contract signed',
-    description: 'Master Service Agreement was signed by Rachel Morrison',
-    time: '2 hours ago',
-    read: false,
-    icon: CheckCircle2,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-50',
-  },
-  {
-    id: 2,
-    type: 'reminder',
-    title: 'Signature reminder sent',
-    description: 'Automatic reminder sent to David Park for Employment Contract',
-    time: '4 hours ago',
-    read: false,
-    icon: Send,
-    iconColor: 'text-ocean-500',
-    iconBg: 'bg-ocean-50',
-  },
-  {
-    id: 3,
-    type: 'expiring',
-    title: 'Contract expiring soon',
-    description: 'Freelancer Services Agreement with Lena Kovacs expires in 11 days',
-    time: '1 day ago',
-    read: false,
-    icon: AlertTriangle,
-    iconColor: 'text-amber-500',
-    iconBg: 'bg-amber-50',
-  },
-  {
-    id: 4,
-    type: 'comment',
-    title: 'Comment added',
-    description: 'Sarah Chen commented on Marketing Partnership Agreement',
-    time: '1 day ago',
-    read: true,
-    icon: MessageSquare,
-    iconColor: 'text-violet-500',
-    iconBg: 'bg-violet-50',
-  },
-  {
-    id: 5,
-    type: 'draft',
-    title: 'Draft needs attention',
-    description: 'Consulting Engagement Letter has been idle for 3 days',
-    time: '2 days ago',
-    read: true,
-    icon: PenLine,
-    iconColor: 'text-slate-400',
-    iconBg: 'bg-slate-50',
-  },
-];
+// Notifications — empty for new users, populated by real events
+const notifications: {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+  icon: React.ElementType;
+  iconColor: string;
+  iconBg: string;
+}[] = [];
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -251,6 +206,12 @@ export default function TopBar() {
 
               {/* Notification list */}
               <div className="max-h-[400px] overflow-y-auto">
+                {notifications.length === 0 && (
+                  <div className="py-10 text-center">
+                    <p className="text-[13px] text-slate-400">You&rsquo;re all caught up.</p>
+                    <p className="text-[11px] text-slate-300 mt-1">Notifications will appear here as events happen.</p>
+                  </div>
+                )}
                 {notifications.map((notif) => {
                   const Icon = notif.icon;
                   const isUnread = !readIds.has(notif.id);

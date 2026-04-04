@@ -29,7 +29,8 @@ import {
   BarChart3,
   ChevronRight,
 } from "lucide-react";
-import { chartData } from "../../data/mockData";
+import { useContracts } from "../../hooks/useContracts";
+import { AnalyticsEmptyState } from "../../components/EmptyState";
 
 const DATE_RANGES = ["Last 30 days", "Last 90 days", "Last 12 months"] as const;
 
@@ -92,7 +93,55 @@ const REMINDER_CONTRACTS = [
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
+  const { contracts, loading, isEmpty } = useContracts();
   const [dateRange, setDateRange] = useState<(typeof DATE_RANGES)[number]>("Last 30 days");
+
+  // Derive chart data from real contracts
+  const chartData = {
+    contractsOverTime: (() => {
+      const months: Record<string, number> = {};
+      contracts.forEach((c) => {
+        const d = new Date(c.createdDate);
+        const key = d.toLocaleDateString('en-US', { month: 'short' });
+        months[key] = (months[key] || 0) + 1;
+      });
+      return Object.entries(months).slice(-6).map(([month, count]) => ({ month, count }));
+    })(),
+    contractsByCategory: Object.entries(
+      contracts.reduce<Record<string, { count: number; value: number }>>((acc, c) => {
+        if (!acc[c.category]) acc[c.category] = { count: 0, value: 0 };
+        acc[c.category].count++;
+        acc[c.category].value += c.value;
+        return acc;
+      }, {})
+    ).map(([category, data]) => ({ category, ...data })),
+    signatureTurnaround: (() => {
+      const months: Record<string, number[]> = {};
+      contracts.filter((c) => c.status === 'signed').forEach((c) => {
+        const d = new Date(c.lastUpdated);
+        const key = d.toLocaleDateString('en-US', { month: 'short' });
+        const days = Math.max(1, Math.floor((new Date(c.lastUpdated).getTime() - new Date(c.createdDate).getTime()) / (1000 * 60 * 60 * 24)));
+        if (!months[key]) months[key] = [];
+        months[key].push(days);
+      });
+      return Object.entries(months).map(([month, arr]) => ({ month, days: Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 }));
+    })(),
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 rounded-full border-[3px] border-ocean-500 border-t-transparent animate-spin" />
+          <p className="text-[13px] text-slate-400">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmpty) {
+    return <AnalyticsEmptyState />;
+  }
   const [showRemindersModal, setShowRemindersModal] = useState(false);
   const [reminderSelected, setReminderSelected] = useState<Set<string>>(new Set(REMINDER_CONTRACTS.map((c) => c.id)));
   const [reminderSent, setReminderSent] = useState(false);

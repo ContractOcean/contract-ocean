@@ -16,13 +16,9 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-// ─── Billing history ─────────────────────────────────────────────────────────
+// ─── Billing history (empty for new users — populated from payment provider) ─
 
-const billingHistory = [
-  { date: 'Mar 1, 2026', description: 'Essentials Plan — Monthly', amount: '$14.00', status: 'Paid', invoice: '#INV-2026-003' },
-  { date: 'Feb 1, 2026', description: 'Essentials Plan — Monthly', amount: '$14.00', status: 'Paid', invoice: '#INV-2026-002' },
-  { date: 'Jan 1, 2026', description: 'Essentials Plan — Monthly', amount: '$14.00', status: 'Paid', invoice: '#INV-2026-001' },
-];
+const billingHistory: { date: string; description: string; amount: string; status: string; invoice: string }[] = [];
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -245,6 +241,12 @@ export default function BillingPage() {
         {/* ── Billing history ──────────────────────────────────────── */}
         <div>
           <h2 className="text-[16px] font-semibold text-slate-900 mb-5">Billing History</h2>
+          {billingHistory.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white shadow-card py-12 text-center">
+              <p className="text-[14px] text-slate-400">No billing history yet.</p>
+              <p className="text-[12px] text-slate-300 mt-1">Invoices will appear here after your first payment.</p>
+            </div>
+          ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
             <table className="min-w-full divide-y divide-slate-200">
               <thead>
@@ -278,6 +280,7 @@ export default function BillingPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
     </div>

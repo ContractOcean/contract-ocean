@@ -31,7 +31,8 @@ import {
   Tag,
   Shield,
 } from 'lucide-react';
-import { contracts, type Contract } from '../../data/mockData';
+import { useContracts, type Contract } from '../../hooks/useContracts';
+import { ContractsEmptyState } from '../../components/EmptyState';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -346,6 +347,7 @@ function DetailItem({ icon: Icon, label, value }: { icon: React.ElementType; lab
 
 export default function ContractsPage() {
   const navigate = useNavigate();
+  const { contracts, loading, isEmpty } = useContracts();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -418,27 +420,23 @@ export default function ContractsPage() {
     setSelectedRows(new Set());
   }
 
-  // ─── Empty state ────────────────────────────────────────────────────────
+  // ─── Loading state ───────────────────────────────────────────────────────
 
-  if (contracts.length === 0) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <FileText className="h-8 w-8 text-slate-400" />
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 rounded-full border-[3px] border-ocean-500 border-t-transparent animate-spin" />
+          <p className="text-[13px] text-slate-400">Loading contracts...</p>
         </div>
-        <h3 className="text-lg font-semibold text-slate-900">No contracts yet</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Get started by creating your first contract.
-        </p>
-        <button
-          onClick={() => navigate('/ai-generator')}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ocean-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-ocean-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Create your first contract
-        </button>
       </div>
     );
+  }
+
+  // ─── Empty state ────────────────────────────────────────────────────────
+
+  if (isEmpty) {
+    return <ContractsEmptyState />;
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────

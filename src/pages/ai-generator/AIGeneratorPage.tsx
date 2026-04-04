@@ -6,7 +6,7 @@ import {
   ToggleLeft, ToggleRight, BookOpen, Globe, DollarSign, Calendar, MapPin, Mail, User,
   Hash, Building, AlertCircle, X, Search, Info, Zap, CheckCircle2, Plus,
 } from "lucide-react";
-import { contacts } from "../../data/mockData";
+import { useContacts } from "../../hooks/useContacts";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -102,6 +102,7 @@ const labelCls = "block text-[13px] font-medium text-slate-700 mb-1.5";
 
 export default function AIGeneratorPage() {
   const navigate = useNavigate();
+  const { contacts } = useContacts();
   const [currentStep, setCurrentStep] = useState(0);
   const [showValidation, setShowValidation] = useState(false);
 

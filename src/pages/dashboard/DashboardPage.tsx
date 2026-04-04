@@ -35,7 +35,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { dashboardStats, activityFeed, chartData, contracts } from '../../data/mockData';
+import { useContracts } from '../../hooks/useContracts';
+import { DashboardEmptyState } from '../../components/EmptyState';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,21 @@ function daysUntil(dateStr: string): number {
   const now = new Date();
   const target = new Date(dateStr);
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function daysSince(dateStr: string): number {
+  const now = new Date();
+  const target = new Date(dateStr);
+  return Math.floor((now.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function relativeTime(dateStr: string): string {
+  const d = daysSince(dateStr);
+  if (d === 0) return 'Today';
+  if (d === 1) return 'Yesterday';
+  if (d < 7) return `${d}d ago`;
+  if (d < 30) return `${Math.floor(d / 7)}w ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatCurrency(value: number): string {
@@ -166,8 +182,36 @@ function AttentionItem({
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { contracts, loading, isEmpty } = useContracts();
   const today = new Date();
   const [aiDismissed, setAiDismissed] = useState<string[]>([]);
+
+  // ─── Show empty state for first-time users ──────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 rounded-full border-[3px] border-ocean-500 border-t-transparent animate-spin" />
+          <p className="text-[13px] text-slate-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <div className="min-h-screen bg-slate-25 px-8 py-8 max-w-[1440px] mx-auto">
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-[24px] font-semibold text-slate-900 tracking-tight">{getGreeting()}, {'\u{1F44B}'}</h1>
+            <p className="text-[14px] text-slate-500 mt-1">{formatDate(today)} &middot; Welcome to Contract Ocean.</p>
+          </div>
+        </div>
+        <DashboardEmptyState />
+      </div>
+    );
+  }
 
   // ─── Derived data ───────────────────────────────────────────────────────
 
@@ -194,49 +238,75 @@ export default function DashboardPage() {
   const draftCount = contracts.filter((c) => c.status === 'draft').length;
   const awaitingCount = contracts.filter((c) => c.status === 'awaiting_signature').length;
 
-  // ─── AI Suggestions ─────────────────────────────────────────────────────
+  // ─── Computed stats (from real data) ─────────────────────────────────────
+
+  const totalContracts = contracts.length;
+  const signedThisMonth = contracts.filter((c) => c.status === 'signed' && new Date(c.lastUpdated).getMonth() === today.getMonth()).length;
+  const expiringSoon = contracts.filter((c) => c.status === 'expiring_soon' || (daysUntil(c.expiryDate) <= 30 && daysUntil(c.expiryDate) > 0)).length;
+  const completionRate = totalContracts > 0 ? Math.round((contracts.filter((c) => ['signed', 'completed'].includes(c.status)).length / totalContracts) * 100) : 0;
+
+  // Build chart data from real contracts
+  const contractsByCategory = Object.entries(
+    contracts.reduce<Record<string, { count: number; value: number }>>((acc, c) => {
+      if (!acc[c.category]) acc[c.category] = { count: 0, value: 0 };
+      acc[c.category].count++;
+      acc[c.category].value += c.value;
+      return acc;
+    }, {})
+  ).map(([category, data]) => ({ category, ...data }));
+
+  // Build activity feed from recent contracts
+  const activityFeed = contracts.slice(0, 6).map((c, i) => ({
+    id: i + 1,
+    action: c.status === 'signed' ? 'signed' : c.status === 'sent' ? 'sent' : c.status === 'draft' ? 'created' : c.status === 'expiring_soon' ? 'expiring' : 'created',
+    description: `${c.name} — ${c.counterparty || 'No counterparty'}`,
+    time: relativeTime(c.lastUpdated),
+  }));
+
+  // Simple chart data from contracts by month
+  const contractsOverTime = (() => {
+    const months: Record<string, number> = {};
+    contracts.forEach((c) => {
+      const d = new Date(c.createdDate);
+      const key = d.toLocaleDateString('en-US', { month: 'short' });
+      months[key] = (months[key] || 0) + 1;
+    });
+    return Object.entries(months).slice(-6).map(([month, count]) => ({ month, count }));
+  })();
+
+  // ─── AI Suggestions (only show relevant ones) ──────────────────────────
 
   const aiSuggestions = [
-    {
+    ...(expiringSoon > 0 ? [{
       id: 'ai-1',
       icon: AlertTriangle,
       iconBg: 'bg-amber-500',
-      title: 'Renewal risk detected',
-      description: `Freelancer Services Agreement with Lena Kovacs expires in ${daysUntil('2026-04-01')} days. No renewal draft has been started.`,
-      action: 'Start renewal',
+      title: `${expiringSoon} contract${expiringSoon > 1 ? 's' : ''} expiring soon`,
+      description: `Review and renew expiring agreements to avoid coverage gaps.`,
+      action: 'Review contracts',
       priority: 'high' as const,
-      onClick: () => navigate('/ai-generator'),
-    },
-    {
+      onClick: () => navigate('/contracts'),
+    }] : []),
+    ...(awaitingCount > 0 ? [{
       id: 'ai-2',
       icon: Target,
       iconBg: 'bg-ocean-500',
       title: 'Signature bottleneck',
-      description: `${awaitingCount} contracts awaiting signature with an avg wait of 4.2 days. Consider sending reminders to accelerate close rate.`,
+      description: `${awaitingCount} contract${awaitingCount > 1 ? 's' : ''} awaiting signature. Consider sending reminders.`,
       action: 'Send reminders',
       priority: 'medium' as const,
-      onClick: () => navigate('/contracts?filter=awaiting_signature'),
-    },
-    {
+      onClick: () => navigate('/contracts'),
+    }] : []),
+    ...(draftCount > 0 ? [{
       id: 'ai-3',
       icon: Lightbulb,
       iconBg: 'bg-violet-500',
-      title: `${draftCount} drafts worth $35K stalled`,
-      description: 'Two draft contracts have been idle for 48+ hours. Finalizing them this week could close your Q1 pipeline gap.',
+      title: `${draftCount} draft${draftCount > 1 ? 's' : ''} need attention`,
+      description: 'Completing drafts could add value to your pipeline.',
       action: 'Review drafts',
       priority: 'low' as const,
-      onClick: () => navigate('/contracts?filter=draft'),
-    },
-    {
-      id: 'ai-4',
-      icon: TrendingUp,
-      iconBg: 'bg-emerald-500',
-      title: 'Vendor consolidation opportunity',
-      description: 'You have 3 active vendor agreements with overlapping scopes. Consolidating could reduce legal overhead by ~$12K annually.',
-      action: 'View vendor contracts',
-      priority: 'low' as const,
       onClick: () => navigate('/contracts'),
-    },
+    }] : []),
   ].filter((s) => !aiDismissed.includes(s.id));
 
   // ─── Category bar colors ──────────────────────────────────────────────
@@ -250,7 +320,7 @@ export default function DashboardPage() {
     Consulting: '#ec4899',
   };
 
-  const maxCategoryCount = Math.max(...chartData.contractsByCategory.map((c) => c.count));
+  const maxCategoryCount = Math.max(1, ...contractsByCategory.map((c) => c.count));
 
   // ─── Status color helper ──────────────────────────────────────────────
 
@@ -380,11 +450,11 @@ export default function DashboardPage() {
               +12% vs last month
             </span>
           </div>
-          <p className="text-[28px] font-bold text-slate-900 leading-none">{dashboardStats.totalContracts}</p>
+          <p className="text-[28px] font-bold text-slate-900 leading-none">{totalContracts}</p>
           <p className="text-[13px] font-medium text-slate-500 mt-1">Active Contracts</p>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
             <p className="text-[12px] text-slate-400 leading-relaxed">
-              <span className="font-medium text-slate-600">{dashboardStats.signedThisMonth} signed</span> this month &middot; {draftCount} in draft
+              <span className="font-medium text-slate-600">{signedThisMonth} signed</span> this month &middot; {draftCount} in draft
             </p>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-ocean-500 transition-colors shrink-0" />
           </div>
@@ -447,7 +517,7 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
               <Target className="w-[20px] h-[20px] text-amber-600" />
             </div>
-            {dashboardStats.completionRate >= 85 ? (
+            {completionRate >= 85 ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                 <CheckCircle2 className="w-3 h-3" />
                 On track
@@ -459,18 +529,18 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          <p className="text-[28px] font-bold text-slate-900 leading-none">{dashboardStats.completionRate}<span className="text-[18px] font-semibold text-slate-400 ml-0.5">%</span></p>
+          <p className="text-[28px] font-bold text-slate-900 leading-none">{completionRate}<span className="text-[18px] font-semibold text-slate-400 ml-0.5">%</span></p>
           <p className="text-[13px] font-medium text-slate-500 mt-1">Signature Completion</p>
           <div className="mt-3 pt-3 border-t border-slate-100">
             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-ocean-500 to-emerald-500 rounded-full transition-all duration-700"
-                style={{ width: `${dashboardStats.completionRate}%` }}
+                style={{ width: `${completionRate}%` }}
               />
             </div>
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-[11px] text-slate-400">
-                {awaitingCount} pending &middot; {dashboardStats.expiringSoon} at risk
+                {awaitingCount} pending &middot; {expiringSoon} at risk
               </p>
               <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-ocean-500 transition-colors shrink-0" />
             </div>
@@ -518,7 +588,7 @@ export default function DashboardPage() {
 
             <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData.contractsOverTime} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <AreaChart data={contractsOverTime} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <defs>
                     <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#0a7aff" stopOpacity={0.12} />
@@ -669,7 +739,7 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="space-y-4">
-              {chartData.contractsByCategory.map((cat) => {
+              {contractsByCategory.map((cat) => {
                 const pct = Math.round((cat.count / maxCategoryCount) * 100);
                 const color = categoryColors[cat.category] || '#64748b';
                 return (
@@ -827,7 +897,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-[140px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData.signatureTurnaround} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <AreaChart data={contractsOverTime} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <defs>
                     <linearGradient id="sigFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity={0.12} />

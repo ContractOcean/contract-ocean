@@ -23,7 +23,8 @@ import {
   History,
   Target,
 } from "lucide-react";
-import { templates, contacts, type Template } from "../../data/mockData";
+import { useTemplates, type Template } from "../../hooks/useTemplates";
+import { useContacts } from "../../hooks/useContacts";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -54,9 +55,10 @@ const useCaseActions = [
 ];
 
 // Recently used (simulated)
-const recentlyUsedIds = ["TPL-001", "TPL-005", "TPL-002"];
+// Recently used will be populated from user activity — empty for new users
+const recentlyUsedIds: string[] = [];
 // Recommended for you (simulated)
-const recommendedIds = ["TPL-003", "TPL-012", "TPL-007"];
+// Recommended templates use the `recommended` boolean flag from DB
 
 // Best-for labels per template
 const bestForLabels: Record<string, string> = {
@@ -207,7 +209,7 @@ function PreviewModal({ template, onClose, onUse }: { template: Template; onClos
 
 // ─── Use Template Modal ─────────────────────────────────────────────────────
 
-function UseTemplateModal({ template, onClose }: { template: Template; onClose: () => void }) {
+function UseTemplateModal({ template, onClose, contacts }: { template: Template; onClose: () => void; contacts: { id: string; name: string; company: string }[] }) {
   const navigate = useNavigate();
   const [selectedContact, setSelectedContact] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -285,6 +287,8 @@ function UseTemplateModal({ template, onClose }: { template: Template; onClose: 
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
+  const { templates, loading } = useTemplates();
+  const { contacts } = useContacts();
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [activeUseCase, setActiveUseCase] = useState<number | null>(null);
@@ -303,7 +307,19 @@ export default function TemplatesPage() {
   });
 
   const recentlyUsed = templates.filter((t) => recentlyUsedIds.includes(t.id));
-  const recommendedForYou = templates.filter((t) => recommendedIds.includes(t.id));
+  const recommendedForYou = templates.filter((t) => t.recommended);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 rounded-full border-[3px] border-ocean-500 border-t-transparent animate-spin" />
+          <p className="text-[13px] text-slate-400">Loading templates...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Empty state
   if (templates.length === 0) {
@@ -591,6 +607,7 @@ export default function TemplatesPage() {
         <UseTemplateModal
           template={useTemplate}
           onClose={() => setUseTemplate(null)}
+          contacts={contacts}
         />
       )}
     </div>

@@ -7,15 +7,35 @@ export interface Template {
   name: string;
   category: string;
   description: string;
-  use_case: string;
-  estimated_time: string;
+  useCase: string;
+  estimatedTime: string;
   popular: boolean;
   recommended: boolean;
-  usage_count: number;
+  usageCount: number;
   content: unknown;
   type: 'system' | 'custom';
-  user_id: string | null;
-  created_at: string;
+  userId: string | null;
+  createdAt: string;
+}
+
+// Map Supabase snake_case → app camelCase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapTemplate(row: any): Template {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    description: row.description,
+    useCase: row.use_case || '',
+    estimatedTime: row.estimated_time || '10 min',
+    popular: row.popular || false,
+    recommended: row.recommended || false,
+    usageCount: row.usage_count || 0,
+    content: row.content,
+    type: row.type || 'system',
+    userId: row.user_id,
+    createdAt: row.created_at,
+  };
 }
 
 interface UseTemplatesReturn {
@@ -48,7 +68,7 @@ export function useTemplates(): UseTemplatesReturn {
     if (err) {
       setError(err.message);
     } else {
-      setTemplates((data as Template[]) || []);
+      setTemplates((data || []).map(mapTemplate));
     }
     setLoading(false);
   }, [user]);
@@ -67,8 +87,8 @@ export function useTemplates(): UseTemplatesReturn {
         name: newName || `${template.name} (Copy)`,
         category: template.category,
         description: template.description,
-        use_case: template.use_case,
-        estimated_time: template.estimated_time,
+        use_case: template.useCase,
+        estimated_time: template.estimatedTime,
         popular: false,
         recommended: false,
         usage_count: 0,
@@ -80,9 +100,11 @@ export function useTemplates(): UseTemplatesReturn {
       .single();
 
     if (!err && data) {
-      setTemplates((prev) => [data as Template, ...prev]);
+      const mapped = mapTemplate(data);
+      setTemplates((prev) => [mapped, ...prev]);
+      return { data: mapped, error: null };
     }
-    return { data: data as Template | null, error: err?.message ?? null };
+    return { data: null, error: err?.message ?? null };
   }
 
   return {

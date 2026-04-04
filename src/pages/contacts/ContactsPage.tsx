@@ -22,7 +22,9 @@ import {
   AlertTriangle,
   Users,
 } from "lucide-react";
-import { contacts, contracts, type Contact } from "../../data/mockData";
+import { useContacts, type Contact } from "../../hooks/useContacts";
+import { useContracts } from "../../hooks/useContracts";
+import { ContactsEmptyState } from "../../components/EmptyState";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -81,18 +83,14 @@ function getAllTags(contactList: Contact[]): string[] {
 }
 
 // Derive contract stats for a contact
-function getContactStats(contact: Contact) {
-  const related = contracts.filter(
-    (c) => c.counterparty.toLowerCase().includes(contact.name.toLowerCase().split(" ")[1] || "__none__") ||
-           c.counterparty.toLowerCase().includes(contact.company.toLowerCase())
-  );
+function getContactStats(contact: Contact, _contracts: { counterparty: string }[] = []) {
 
   // Simulate realistic stats based on contractCount
   const signed = Math.max(1, Math.floor(contact.contractCount * 0.5));
   const pending = Math.max(0, Math.floor(contact.contractCount * 0.3));
   const draft = contact.contractCount - signed - pending;
 
-  return { signed: Math.max(0, signed), pending: Math.max(0, pending), draft: Math.max(0, draft), related };
+  return { signed: Math.max(0, signed), pending: Math.max(0, pending), draft: Math.max(0, draft), related: [] as { id: string; name: string }[] };
 }
 
 // Smart tags based on behavior
@@ -126,7 +124,9 @@ function ContactDrawer({
   contact,
   onClose,
   onCreateContract,
+  contracts = [],
 }: {
+  contracts?: { id: string; name: string; counterparty: string; status: string }[];
   contact: Contact;
   onClose: () => void;
   onCreateContract: () => void;
@@ -295,6 +295,8 @@ function ContactDrawer({
 
 export default function ContactsPage() {
   const navigate = useNavigate();
+  const { contacts, loading, isEmpty } = useContacts();
+  const { contracts } = useContracts();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [tagFilter, setTagFilter] = useState("all");
@@ -302,6 +304,21 @@ export default function ContactsPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [form, setForm] = useState({ name: "", email: "", company: "", role: "", phone: "", tags: "" });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 rounded-full border-[3px] border-ocean-500 border-t-transparent animate-spin" />
+          <p className="text-[13px] text-slate-400">Loading contacts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmpty) {
+    return <ContactsEmptyState />;
+  }
 
   const allTags = getAllTags(contacts);
 
@@ -589,6 +606,7 @@ export default function ContactsPage() {
           contact={selectedContact}
           onClose={() => setSelectedContact(null)}
           onCreateContract={() => handleCreateFromContact(selectedContact)}
+          contracts={contracts}
         />
       )}
 
