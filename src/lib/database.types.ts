@@ -66,6 +66,8 @@ export interface Database {
           recommended: boolean;
           usage_count: number;
           content: Json | null;
+          type: 'system' | 'custom';
+          user_id: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['templates']['Row'], 'id' | 'created_at'>;
