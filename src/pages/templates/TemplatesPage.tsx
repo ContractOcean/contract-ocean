@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useTemplates, type Template } from "../../hooks/useTemplates";
 import { useContacts } from "../../hooks/useContacts";
+import { useContracts } from "../../hooks/useContracts";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -211,71 +212,128 @@ function PreviewModal({ template, onClose, onUse }: { template: Template; onClos
 
 function UseTemplateModal({ template, onClose, contacts }: { template: Template; onClose: () => void; contacts: { id: string; name: string; company: string }[] }) {
   const navigate = useNavigate();
-  const [selectedContact, setSelectedContact] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [contractTitle, setContractTitle] = useState(template.name);
+  const { createContract } = useContracts();
+  const [contractName, setContractName] = useState(template.name);
+  const [counterparty, setCounterparty] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleProceed() {
-    navigate("/editor");
+  async function handleCreate() {
+    if (!contractName.trim()) return;
+    setIsCreating(true);
+    setError(null);
+    const { error: err } = await createContract({
+      name: contractName.trim(),
+      counterparty: counterparty.trim(),
+      category: template.category,
+      content: { templateId: template.id, templateName: template.name, notes },
+    });
+    setIsCreating(false);
+    if (err) {
+      setError(err);
+    } else {
+      onClose();
+      navigate("/editor");
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        {/* Progress indicator */}
+        <div className="px-6 pt-4 pb-0">
+          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400 mb-3">
+            <span className="text-ocean-600 font-semibold">1. Choose Template</span>
+            <div className="w-4 h-px bg-slate-200" />
+            <span>2. Customize</span>
+            <div className="w-4 h-px bg-slate-200" />
+            <span>3. Send</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200">
           <div>
-            <h2 className="text-[16px] font-semibold text-slate-900">Set Up Contract</h2>
-            <p className="text-[12px] text-slate-400 mt-0.5">Using: {template.name}</p>
+            <h2 className="text-[16px] font-semibold text-slate-900">Create Contract</h2>
+            <p className="text-[12px] text-slate-400 mt-0.5">From: {template.name}</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
+        {error && (
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">{error}</div>
+        )}
+
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Contract Title</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[13px] font-medium text-slate-700">Contract Name</label>
+              <span className="text-[11px] text-slate-400">Required</span>
+            </div>
             <input
-              value={contractTitle}
-              onChange={(e) => setContractTitle(e.target.value)}
+              value={contractName}
+              onChange={(e) => setContractName(e.target.value)}
+              placeholder="e.g. Service Agreement — Acme Corp"
+              autoFocus
               className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-[13px] text-slate-700 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
             />
           </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Select Contact</label>
-            <select
-              value={selectedContact}
-              onChange={(e) => {
-                setSelectedContact(e.target.value);
-                const c = contacts.find((ct) => ct.id === e.target.value);
-                if (c && !companyName) setCompanyName(c.company);
-              }}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] text-slate-700 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
-            >
-              <option value="">Choose a contact (optional)</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} — {c.company}</option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[13px] font-medium text-slate-700">Counterparty</label>
+              <span className="text-[11px] text-slate-300">Optional</span>
+            </div>
+            {contacts.length > 0 ? (
+              <select
+                value={counterparty}
+                onChange={(e) => setCounterparty(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] text-slate-700 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
+              >
+                <option value="">Choose a contact or type below</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name} — {c.company}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={counterparty}
+                onChange={(e) => setCounterparty(e.target.value)}
+                placeholder="Company or person name"
+                className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
+              />
+            )}
           </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Company Name</label>
-            <input
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Enter company name"
-              className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[13px] font-medium text-slate-700">Notes</label>
+              <span className="text-[11px] text-slate-300">Optional</span>
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any context for this contract..."
+              rows={2}
+              className="w-full resize-none rounded-lg border border-slate-200 px-3.5 py-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-ocean-300 focus:outline-none focus:ring-2 focus:ring-ocean-100"
             />
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200 bg-slate-25">
           <button onClick={onClose} className="px-4 py-2 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
-          <button onClick={handleProceed} className="flex items-center gap-2 px-5 py-2 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm">
-            Open in Editor
-            <ArrowRight className="w-3.5 h-3.5" />
+          <button
+            onClick={handleCreate}
+            disabled={isCreating || !contractName.trim()}
+            className="flex items-center gap-2 px-5 py-2 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreating ? (
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <>Create & Open Editor <ArrowRight className="w-3.5 h-3.5" /></>
+            )}
           </button>
         </div>
       </div>
@@ -298,13 +356,25 @@ export default function TemplatesPage() {
   // Filter logic
   const useCaseCategories = activeUseCase !== null ? useCaseActions[activeUseCase].categories : [];
 
-  const filteredTemplates = templates.filter((t) => {
-    const matchesCategory = activeCategory === "All" || t.category === activeCategory;
-    const matchesUseCase = useCaseCategories.length === 0 || useCaseCategories.includes(t.category);
-    const q = search.toLowerCase();
-    const matchesSearch = q === "" || t.name.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.useCase.toLowerCase().includes(q);
-    return matchesCategory && matchesSearch && matchesUseCase;
-  });
+  // Priority templates shown first: NDA, Service Agreement, Employment
+  const priorityNames = ['Mutual Non-Disclosure Agreement', 'Master Service Agreement', 'Employment Offer Letter'];
+
+  const filteredTemplates = templates
+    .filter((t) => {
+      const matchesCategory = activeCategory === "All" || t.category === activeCategory;
+      const matchesUseCase = useCaseCategories.length === 0 || useCaseCategories.includes(t.category);
+      const q = search.toLowerCase();
+      const matchesSearch = q === "" || t.name.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || t.useCase.toLowerCase().includes(q);
+      return matchesCategory && matchesSearch && matchesUseCase;
+    })
+    .sort((a, b) => {
+      const aIdx = priorityNames.indexOf(a.name);
+      const bIdx = priorityNames.indexOf(b.name);
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      if (aIdx !== -1) return -1;
+      if (bIdx !== -1) return 1;
+      return 0;
+    });
 
   const recentlyUsed = templates.filter((t) => recentlyUsedIds.includes(t.id));
   const recommendedForYou = templates.filter((t) => t.recommended);
@@ -346,12 +416,12 @@ export default function TemplatesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-8 lg:px-10" style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      {/* Page Header */}
+      {/* Page Header — activation-driven */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-slate-900">Template Library</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-slate-900">Start with a proven contract template</h1>
           <p className="mt-1 text-[14px] text-slate-500">
-            {templates.length} professional templates &middot; Choose one to get started in minutes
+            Create, customize, and send your first contract in minutes &middot; {templates.length} templates available
           </p>
         </div>
         <button className="inline-flex items-center gap-2 rounded-lg bg-ocean-600 px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-ocean-700">

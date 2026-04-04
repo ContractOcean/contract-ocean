@@ -161,8 +161,8 @@ export default function OnboardingPage() {
     });
     setIsLoading(false);
 
-    const sp = startingPoints.find((s) => s.value === startingPoint);
-    navigate(sp?.route || "/");
+    // Always redirect to Templates — the primary activation path
+    navigate("/templates");
   }
 
   // Validation helpers
