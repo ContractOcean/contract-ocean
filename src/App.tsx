@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/AuthContext';
+import { PaywallProvider } from './lib/paywall';
 import { ProtectedRoute, PublicRoute, OnboardingRoute } from './lib/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -32,7 +33,7 @@ function App() {
           <Route path="/onboarding" element={<OnboardingRoute><OnboardingPage /></OnboardingRoute>} />
 
           {/* Protected app routes — redirect to login if not authenticated */}
-          <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route element={<ProtectedRoute><PaywallProvider><AppLayout /></PaywallProvider></ProtectedRoute>}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
             <Route path="/templates" element={<TemplatesPage />} />

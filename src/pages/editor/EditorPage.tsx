@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
+import { usePaywall } from '../../lib/paywall';
 import {
   ArrowLeft,
   Bold,
@@ -393,6 +394,7 @@ function renderContent(
 export default function EditorPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { checkSendLimit } = usePaywall();
   const [showGuide, setShowGuide] = useState(true);
   const [activeSection, setActiveSection] = useState(0);
   const [activeTab, setActiveTab] = useState<'ai' | 'variables' | 'comments'>('ai');
@@ -663,7 +665,7 @@ export default function EditorPage() {
           </button>
 
           {/* Primary CTA — prominent */}
-          <button onClick={() => navigate('/sign-send')} className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm">
+          <button onClick={() => { if (checkSendLimit()) navigate('/sign-send'); }} className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm">
             <Send className="w-4 h-4" />
             Send Contract
           </button>

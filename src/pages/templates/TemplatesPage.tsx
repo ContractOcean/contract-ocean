@@ -27,6 +27,7 @@ import { useTemplates, type Template } from "../../hooks/useTemplates";
 import { useContacts } from "../../hooks/useContacts";
 import { useContracts } from "../../hooks/useContracts";
 import { useAuth } from "../../lib/AuthContext";
+import { usePaywall } from "../../lib/paywall";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -215,6 +216,7 @@ function UseTemplateModal({ template, onClose, contacts }: { template: Template;
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { createContract } = useContracts();
+  const { checkCreateLimit } = usePaywall();
   const companyLabel = profile?.company_name ? ` \u2014 ${profile.company_name}` : '';
   const [contractName, setContractName] = useState(`${template.name}${companyLabel}`);
   const [counterparty, setCounterparty] = useState("");
@@ -224,6 +226,7 @@ function UseTemplateModal({ template, onClose, contacts }: { template: Template;
 
   async function handleCreate() {
     if (!contractName.trim()) return;
+    if (!checkCreateLimit()) return; // paywall check
     setIsCreating(true);
     setError(null);
     const { error: err } = await createContract({
