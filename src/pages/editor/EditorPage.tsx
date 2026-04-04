@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../lib/AuthContext';
 import {
   ArrowLeft,
   Bold,
@@ -391,11 +392,20 @@ function renderContent(
 
 export default function EditorPage() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const [showGuide, setShowGuide] = useState(true);
   const [activeSection, setActiveSection] = useState(0);
   const [activeTab, setActiveTab] = useState<'ai' | 'variables' | 'comments'>('ai');
   const [highlightedVar, setHighlightedVar] = useState<string | null>(null);
   const [editingVar, setEditingVar] = useState<number | null>(null);
-  const [varValues, setVarValues] = useState<VariableItem[]>(initialVariables);
+
+  // Auto-fill variables from user profile
+  const autoFilledVars: VariableItem[] = initialVariables.map((v) => {
+    if (v.name === 'Company Name' && profile?.company_name) return { ...v, value: profile.company_name, filled: true };
+    if (v.name === 'Effective Date') return { ...v, value: new Date().toISOString().split('T')[0], filled: true };
+    return v;
+  });
+  const [varValues, setVarValues] = useState<VariableItem[]>(autoFilledVars);
   const [showSelection, setShowSelection] = useState<{ x: number; y: number } | null>(null);
   const [docSections, setDocSections] = useState<Section[]>(initialSections);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -618,10 +628,19 @@ export default function EditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[12px] text-slate-400 mr-1">
-            <Check className="w-3.5 h-3.5 text-emerald-500" />
-            Saved 2 min ago
-          </span>
+          {/* Confidence signals */}
+          <div className="flex items-center gap-3 mr-2">
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              Auto-saved
+            </span>
+            <span className="hidden lg:flex items-center gap-1 text-[11px] text-slate-300">
+              <ShieldCheck className="w-3 h-3" />
+              Secure
+            </span>
+          </div>
+
+          {/* Collaborators */}
           <div className="flex -space-x-1.5 mr-2">
             {collaborators.map((c) => (
               <div key={c.name} className={`w-7 h-7 rounded-full ${c.color} flex items-center justify-center text-[10px] font-bold ring-2 ring-white`} title={c.name}>
@@ -632,6 +651,8 @@ export default function EditorPage() {
               <Users className="w-3 h-3" />
             </div>
           </div>
+
+          {/* Secondary actions */}
           <button onClick={() => navigate('/pdf-export')} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
             <Eye className="w-3.5 h-3.5" />
             Preview
@@ -640,9 +661,11 @@ export default function EditorPage() {
             <Download className="w-3.5 h-3.5" />
             Export
           </button>
-          <button onClick={() => navigate('/sign-send')} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm">
-            <Send className="w-3.5 h-3.5" />
-            Send for Signature
+
+          {/* Primary CTA — prominent */}
+          <button onClick={() => navigate('/sign-send')} className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm">
+            <Send className="w-4 h-4" />
+            Send Contract
           </button>
         </div>
       </div>
@@ -704,6 +727,31 @@ export default function EditorPage() {
 
         {/* ── Main Editor Canvas ────────────────────────────────────────── */}
         <div className="flex-1 bg-slate-50 overflow-y-auto" ref={canvasRef}>
+          {/* First-time guided helper */}
+          {showGuide && (
+            <div className="max-w-3xl mx-auto mt-6 mb-0 px-5 py-4 bg-gradient-to-r from-ocean-50 to-violet-50 border border-ocean-200 rounded-xl flex items-center gap-5">
+              <div className="flex items-center gap-6 flex-1">
+                {[
+                  { step: '1', label: 'Review contract', desc: 'Check the pre-filled sections below' },
+                  { step: '2', label: 'Add details', desc: 'Fill in counterparty and terms' },
+                  { step: '3', label: 'Send contract', desc: 'Click "Send Contract" when ready' },
+                ].map((s, i) => (
+                  <div key={s.step} className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-ocean-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{s.step}</div>
+                    <div>
+                      <p className="text-[12px] font-semibold text-slate-700">{s.label}</p>
+                      <p className="text-[10px] text-slate-400">{s.desc}</p>
+                    </div>
+                    {i < 2 && <div className="w-6 h-px bg-ocean-200 ml-2" />}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowGuide(false)} className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <div className="max-w-3xl mx-auto bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] rounded-lg my-6 px-16 py-12 relative">
             {/* Title */}
             <h1

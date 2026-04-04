@@ -26,6 +26,7 @@ import {
 import { useTemplates, type Template } from "../../hooks/useTemplates";
 import { useContacts } from "../../hooks/useContacts";
 import { useContracts } from "../../hooks/useContracts";
+import { useAuth } from "../../lib/AuthContext";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -212,8 +213,10 @@ function PreviewModal({ template, onClose, onUse }: { template: Template; onClos
 
 function UseTemplateModal({ template, onClose, contacts }: { template: Template; onClose: () => void; contacts: { id: string; name: string; company: string }[] }) {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { createContract } = useContracts();
-  const [contractName, setContractName] = useState(template.name);
+  const companyLabel = profile?.company_name ? ` \u2014 ${profile.company_name}` : '';
+  const [contractName, setContractName] = useState(`${template.name}${companyLabel}`);
   const [counterparty, setCounterparty] = useState("");
   const [notes, setNotes] = useState("");
   const [isCreating, setIsCreating] = useState(false);
