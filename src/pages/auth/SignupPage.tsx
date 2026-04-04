@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Waves, Shield, Lock, Users, Eye, EyeOff, Check, X } from "lucide-react";
+import { useAuth } from "../../lib/AuthContext";
 
 interface PasswordCheck {
   label: string;
@@ -9,6 +10,7 @@ interface PasswordCheck {
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -16,6 +18,7 @@ function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const passwordChecks: PasswordCheck[] = useMemo(
     () => [
@@ -47,14 +50,18 @@ function SignupPage() {
     return "#22c55e";
   }, [strengthScore]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreedToTerms) return;
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    const { error: err } = await signUp(email, password, fullName);
+    setIsLoading(false);
+    if (err) {
+      setError(err);
+    } else {
       navigate("/");
-    }, 1200);
+    }
   };
 
   const inputFocusStyle = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -254,6 +261,13 @@ function SignupPage() {
               style={{ backgroundColor: "#e2e8f0" }}
             />
           </div>
+
+          {/* Auth Error */}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+              {error}
+            </div>
+          )}
 
           {/* Signup Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

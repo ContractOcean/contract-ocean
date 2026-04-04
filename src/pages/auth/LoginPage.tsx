@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Waves, Shield, Lock, Users, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../lib/AuthContext";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth request
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    const { error: err } = await signIn(email, password);
+    setIsLoading(false);
+    if (err) {
+      setError(err);
+    } else {
       navigate("/");
-    }, 1200);
+    }
   };
 
   return (
@@ -210,6 +216,13 @@ function LoginPage() {
               style={{ backgroundColor: "#e2e8f0" }}
             />
           </div>
+
+          {/* Auth Error */}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+              {error}
+            </div>
+          )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

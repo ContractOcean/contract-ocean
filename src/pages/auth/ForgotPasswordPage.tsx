@@ -1,20 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Waves, ArrowLeft, Mail } from "lucide-react";
+import { useAuth } from "../../lib/AuthContext";
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    const { error: err } = await resetPassword(email);
+    setIsLoading(false);
+    if (err) {
+      setError(err);
+    } else {
       setIsSubmitted(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -66,6 +73,12 @@ function ForgotPasswordPage() {
                 Enter the email address associated with your account and we'll
                 send you a link to reset your password.
               </p>
+
+              {error && (
+                <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="mt-6">
                 <div>

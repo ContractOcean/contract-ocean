@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../lib/AuthContext';
 import {
   Search, Bell, HelpCircle, ChevronDown, Plus,
   BookOpen, FileText, HeadphonesIcon, MessageSquare,
@@ -70,13 +71,18 @@ const notifications = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function TopBar() {
+  const { profile, user, signOut } = useAuth();
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
+  const displayEmail = profile?.email || user?.email || '';
+  const initials = displayName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+
   const [searchFocused, setSearchFocused] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [readIds, setReadIds] = useState<Set<number>>(new Set(notifications.filter((n) => n.read).map((n) => n.id)));
   const [helpModal, setHelpModal] = useState<'help-center' | 'docs' | 'feedback' | 'whats-new' | null>(null);
-  const [feedbackForm, setFeedbackForm] = useState({ name: 'Sarah Chen', email: 'sarah@company.com', message: '' });
+  const [feedbackForm, setFeedbackForm] = useState({ name: displayName, email: displayEmail, message: '' });
   const [feedbackSent, setFeedbackSent] = useState(false);
   const navigate = useNavigate();
 
@@ -296,11 +302,11 @@ export default function TopBar() {
             className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <div className="w-8 h-8 bg-gradient-to-br from-ocean-400 to-ocean-600 rounded-full flex items-center justify-center">
-              <span className="text-[12px] font-semibold text-white">SC</span>
+              <span className="text-[12px] font-semibold text-white">{initials}</span>
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-[13px] font-medium text-slate-700 leading-tight">Sarah Chen</span>
-              <span className="text-[11px] text-slate-400 leading-tight">Admin</span>
+              <span className="text-[13px] font-medium text-slate-700 leading-tight">{displayName}</span>
+              <span className="text-[11px] text-slate-400 leading-tight">{profile?.role || 'Admin'}</span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
@@ -310,14 +316,14 @@ export default function TopBar() {
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
               <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl border border-slate-200 shadow-dropdown py-1.5 z-50">
                 <div className="px-3 py-2 border-b border-slate-100">
-                  <p className="text-[13px] font-medium text-slate-700">Sarah Chen</p>
-                  <p className="text-[12px] text-slate-400">sarah@company.com</p>
+                  <p className="text-[13px] font-medium text-slate-700">{displayName}</p>
+                  <p className="text-[12px] text-slate-400">{displayEmail}</p>
                 </div>
                 <button className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50 transition-colors" onClick={() => { setShowUserMenu(false); navigate('/settings'); }}>Your profile</button>
                 <button className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50 transition-colors" onClick={() => { setShowUserMenu(false); navigate('/settings'); }}>Settings</button>
                 <button className="w-full text-left px-3 py-2 text-[13px] text-slate-600 hover:bg-slate-50 transition-colors" onClick={() => { setShowUserMenu(false); navigate('/billing'); }}>Billing</button>
                 <div className="border-t border-slate-100 mt-1 pt-1">
-                  <button className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setShowUserMenu(false); navigate('/login'); }}>Sign out</button>
+                  <button className="w-full text-left px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors" onClick={async () => { setShowUserMenu(false); await signOut(); navigate('/login'); }}>Sign out</button>
                 </div>
               </div>
             </>
