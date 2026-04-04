@@ -106,7 +106,7 @@ function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="you@email.com"
                 required
                 autoFocus
                 className="w-full h-11 px-3.5 text-[14px] text-slate-900 bg-white border border-slate-200 rounded-lg placeholder:text-slate-400 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all"

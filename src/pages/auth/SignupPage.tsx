@@ -274,15 +274,16 @@ function SignupPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Work email</label>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Email address</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
+                    placeholder="you@email.com"
                     required
                     className="w-full h-11 px-3.5 text-[14px] text-slate-900 bg-white border border-slate-200 rounded-lg placeholder:text-slate-400 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">For teams, we recommend using your company email</p>
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Password</label>
