@@ -24,20 +24,23 @@ const billingHistory: { date: string; description: string; amount: string; statu
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const [currentPlan] = useState<'essentials' | 'growth'>('essentials');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   async function handleUpgrade() {
-    if (!user) return;
+    if (!session?.access_token) return;
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'pro', userId: user.id }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan: 'pro' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout');

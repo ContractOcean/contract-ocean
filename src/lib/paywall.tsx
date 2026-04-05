@@ -47,7 +47,7 @@ interface PaywallState {
 const PaywallContext = createContext<PaywallState | undefined>(undefined);
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, session } = useAuth();
   const planFromProfile = (profile?.plan_selected === 'growth' ? 'business' : profile?.plan_selected === 'pro' ? 'pro' : 'free') as PlanKey;
   const [currentPlan] = useState<PlanKey>(planFromProfile);
   const [contractCount, setContractCount] = useState(0);
@@ -99,7 +99,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
           onClose={() => setModalOpen(false)}
           contractCount={contractCount}
           maxContracts={config.maxContracts}
-          userId={user?.id ?? null}
+          accessToken={session?.access_token ?? null}
         />
       )}
     </PaywallContext.Provider>
@@ -119,26 +119,29 @@ function UpgradeModal({
   onClose,
   contractCount,
   maxContracts,
-  userId,
+  accessToken,
 }: {
   reason: string;
   onClose: () => void;
   contractCount: number;
   maxContracts: number;
-  userId: string | null;
+  accessToken: string | null;
 }) {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   async function handleUpgrade(plan: 'pro' | 'business') {
-    if (!userId) { setCheckoutError('Please sign in to upgrade.'); return; }
+    if (!accessToken) { setCheckoutError('Please sign in to upgrade.'); return; }
     setCheckoutLoading(plan);
     setCheckoutError(null);
     try {
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, userId }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ plan }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
