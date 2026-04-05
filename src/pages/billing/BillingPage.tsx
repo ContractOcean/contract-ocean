@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../lib/AuthContext';
 import {
   Check,
   CreditCard,
@@ -23,7 +24,29 @@ const billingHistory: { date: string; description: string; amount: string; statu
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
+  const { user } = useAuth();
   const [currentPlan] = useState<'essentials' | 'growth'>('essentials');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  async function handleUpgrade() {
+    if (!user) return;
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'pro', userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
+      if (data.url) window.location.href = data.url;
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : 'Something went wrong');
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-25">
@@ -229,14 +252,28 @@ export default function BillingPage() {
                   Current Plan
                 </button>
               ) : (
-                <button className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-[13px] font-semibold bg-ocean-600 text-white shadow-sm hover:bg-ocean-700 transition-colors">
-                  Unlock Insights
-                  <ArrowRight className="w-4 h-4" />
+                <button
+                  onClick={handleUpgrade}
+                  disabled={checkoutLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-[13px] font-semibold bg-ocean-600 text-white shadow-sm hover:bg-ocean-700 transition-colors disabled:opacity-60"
+                >
+                  {checkoutLoading ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  ) : (
+                    <>Unlock Insights <ArrowRight className="w-4 h-4" /></>
+                  )}
                 </button>
               )}
             </div>
           </div>
         </div>
+
+        {/* Checkout error */}
+        {checkoutError && (
+          <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-[13px] text-red-700 text-center">
+            {checkoutError}
+          </div>
+        )}
 
         {/* ── Billing history ──────────────────────────────────────── */}
         <div>

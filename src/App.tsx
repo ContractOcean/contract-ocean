@@ -17,6 +17,7 @@ import ContactsPage from './pages/contacts/ContactsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/billing/BillingPage';
+import BillingSuccessPage from './pages/billing/BillingSuccessPage';
 import PDFExportPage from './pages/pdf-export/PDFExportPage';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/billing" element={<BillingPage />} />
+            <Route path="/billing/success" element={<BillingSuccessPage />} />
             <Route path="/pdf-export" element={<PDFExportPage />} />
           </Route>
 

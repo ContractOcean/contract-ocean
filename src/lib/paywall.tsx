@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   X, Check, Sparkles, Crown, ArrowRight,
 } from 'lucide-react';
@@ -100,6 +99,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
           onClose={() => setModalOpen(false)}
           contractCount={contractCount}
           maxContracts={config.maxContracts}
+          userId={user?.id ?? null}
         />
       )}
     </PaywallContext.Provider>
@@ -119,13 +119,39 @@ function UpgradeModal({
   onClose,
   contractCount,
   maxContracts,
+  userId,
 }: {
   reason: string;
   onClose: () => void;
   contractCount: number;
   maxContracts: number;
+  userId: string | null;
 }) {
-  const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  async function handleUpgrade(plan: 'pro' | 'business') {
+    if (!userId) { setCheckoutError('Please sign in to upgrade.'); return; }
+    setCheckoutLoading(plan);
+    setCheckoutError(null);
+    try {
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : 'Something went wrong');
+      setCheckoutLoading(null);
+    }
+  }
 
   const headline = reason === 'send'
     ? 'Upgrade to send contracts'
@@ -181,11 +207,15 @@ function UpgradeModal({
                 ))}
               </ul>
               <button
-                onClick={() => { onClose(); navigate('/billing'); }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm"
+                onClick={() => handleUpgrade('pro')}
+                disabled={checkoutLoading === 'pro'}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold text-white bg-ocean-600 rounded-lg hover:bg-ocean-700 transition-colors shadow-sm disabled:opacity-60"
               >
-                Upgrade to Pro
-                <ArrowRight className="w-3.5 h-3.5" />
+                {checkoutLoading === 'pro' ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <>Upgrade to Pro <ArrowRight className="w-3.5 h-3.5" /></>
+                )}
               </button>
             </div>
 
@@ -211,13 +241,25 @@ function UpgradeModal({
                 ))}
               </ul>
               <button
-                onClick={() => { onClose(); navigate('/billing'); }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                onClick={() => handleUpgrade('business')}
+                disabled={checkoutLoading === 'business'}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-60"
               >
-                Choose Business
+                {checkoutLoading === 'business' ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-t-transparent animate-spin" />
+                ) : (
+                  'Choose Business'
+                )}
               </button>
             </div>
           </div>
+
+          {/* Error */}
+          {checkoutError && (
+            <div className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700 text-center">
+              {checkoutError}
+            </div>
+          )}
 
           {/* Continue free */}
           <div className="mt-4 text-center">
