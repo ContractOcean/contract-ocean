@@ -48,7 +48,9 @@ const PaywallContext = createContext<PaywallState | undefined>(undefined);
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
   const { user, profile, session } = useAuth();
-  const planFromProfile = (profile?.plan_selected === 'growth' ? 'business' : profile?.plan_selected === 'pro' ? 'pro' : 'free') as PlanKey;
+  // Map profile plan to canonical keys (handles legacy essentials/growth values)
+  const planMap: Record<string, PlanKey> = { pro: 'pro', business: 'business', essentials: 'pro', growth: 'business' };
+  const planFromProfile = (planMap[profile?.plan_selected || ''] || 'free') as PlanKey;
   const [currentPlan] = useState<PlanKey>(planFromProfile);
   const [contractCount, setContractCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -151,7 +153,12 @@ function UpgradeModal({
         throw new Error('No checkout URL returned');
       }
     } catch (err: unknown) {
-      setCheckoutError(err instanceof Error ? err.message : 'Something went wrong');
+      const msg = err instanceof Error ? err.message : '';
+      setCheckoutError(
+        msg.includes('configuration') || msg.includes('configured')
+          ? 'Billing is temporarily unavailable. Please try again shortly.'
+          : msg || 'Something went wrong. Please try again.'
+      );
       setCheckoutLoading(null);
     }
   }

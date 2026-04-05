@@ -93,7 +93,7 @@ export default function OnboardingPage() {
   const [country, setCountry] = useState("");
   const [companySize, setCompanySize] = useState("");
   const [industry, setIndustry] = useState("");
-  const [planSelected, setPlanSelected] = useState("essentials");
+  const [planSelected, setPlanSelected] = useState("pro");
   const [startingPoint, setStartingPoint] = useState("");
 
   // Touched state for inline validation (per-field on blur)
@@ -379,18 +379,18 @@ export default function OnboardingPage() {
               <p className="text-[14px] text-slate-500 mb-8">You can change this anytime. No credit card required.</p>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Essentials */}
+                {/* Pro */}
                 <button
-                  onClick={() => setPlanSelected("essentials")}
+                  onClick={() => setPlanSelected("pro")}
                   className={`flex flex-col p-6 rounded-2xl border text-left transition-all ${
-                    planSelected === "essentials"
+                    planSelected === "pro"
                       ? 'border-ocean-400 ring-1 ring-ocean-200 bg-white'
                       : 'border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  <h3 className="text-[16px] font-semibold text-slate-900">Essentials</h3>
+                  <h3 className="text-[16px] font-semibold text-slate-900">Pro</h3>
                   <div className="flex items-baseline gap-0.5 mt-2 mb-4">
-                    <span className="text-[28px] font-bold text-slate-900">$14</span>
+                    <span className="text-[28px] font-bold text-slate-900">{'\u20ac'}15</span>
                     <span className="text-[13px] text-slate-400">/mo</span>
                   </div>
                   <ul className="space-y-2.5 mb-4 flex-1">
@@ -400,18 +400,18 @@ export default function OnboardingPage() {
                       </li>
                     ))}
                   </ul>
-                  {planSelected === "essentials" && (
+                  {planSelected === "pro" && (
                     <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ocean-600">
                       <Check className="w-4 h-4" /> Selected
                     </div>
                   )}
                 </button>
 
-                {/* Growth */}
+                {/* Business */}
                 <button
-                  onClick={() => setPlanSelected("growth")}
+                  onClick={() => setPlanSelected("business")}
                   className={`relative flex flex-col p-6 rounded-2xl border text-left transition-all ${
-                    planSelected === "growth"
+                    planSelected === "business"
                       ? 'border-ocean-400 ring-1 ring-ocean-200 bg-gradient-to-b from-white to-ocean-50/30'
                       : 'border-slate-200 bg-gradient-to-b from-white to-ocean-50/20 hover:border-slate-300'
                   }`}
@@ -419,20 +419,20 @@ export default function OnboardingPage() {
                   <div className="absolute -top-2.5 right-4">
                     <span className="text-[10px] font-semibold bg-gradient-to-r from-ocean-500 to-violet-500 text-white px-2.5 py-0.5 rounded-full">Recommended</span>
                   </div>
-                  <h3 className="text-[16px] font-semibold text-slate-900">Growth</h3>
+                  <h3 className="text-[16px] font-semibold text-slate-900">Business</h3>
                   <div className="flex items-baseline gap-0.5 mt-2 mb-4">
-                    <span className="text-[28px] font-bold text-slate-900">$49</span>
+                    <span className="text-[28px] font-bold text-slate-900">{'\u20ac'}49</span>
                     <span className="text-[13px] text-slate-400">/mo</span>
                   </div>
                   <ul className="space-y-2.5 mb-4 flex-1">
-                    {["Everything in Essentials", "Smart Insights", "Bottleneck detection", "Advanced analytics", "Smart recommendations"].map((f, i) => (
+                    {["Everything in Pro", "Smart Insights", "Bottleneck detection", "Advanced analytics", "Smart recommendations"].map((f, i) => (
                       <li key={f} className="flex items-center gap-2 text-[13px] text-slate-600">
                         {i === 0 ? <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-violet-500 shrink-0" />}
                         {f}
                       </li>
                     ))}
                   </ul>
-                  {planSelected === "growth" && (
+                  {planSelected === "business" && (
                     <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ocean-600">
                       <Check className="w-4 h-4" /> Selected
                     </div>

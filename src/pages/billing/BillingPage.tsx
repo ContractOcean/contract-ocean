@@ -25,11 +25,11 @@ const billingHistory: { date: string; description: string; amount: string; statu
 
 export default function BillingPage() {
   const { session } = useAuth();
-  const [currentPlan] = useState<'essentials' | 'growth'>('essentials');
+  const [currentPlan] = useState<'free' | 'pro' | 'business'>('free');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  async function handleUpgrade() {
+  async function handleUpgrade(plan: 'pro' | 'business') {
     if (!session?.access_token) return;
     setCheckoutLoading(true);
     setCheckoutError(null);
@@ -40,13 +40,18 @@ export default function BillingPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ plan: 'pro' }),
+        body: JSON.stringify({ plan }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
       if (data.url) window.location.href = data.url;
     } catch (err: unknown) {
-      setCheckoutError(err instanceof Error ? err.message : 'Something went wrong');
+      const msg = err instanceof Error ? err.message : '';
+      setCheckoutError(
+        msg.includes('configuration') || msg.includes('configured')
+          ? 'Billing is temporarily unavailable. Please try again shortly.'
+          : msg || 'Something went wrong. Please try again.'
+      );
       setCheckoutLoading(false);
     }
   }
@@ -63,7 +68,7 @@ export default function BillingPage() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-card">
               <CreditCard className="h-4 w-4 text-slate-400" />
-              <span className="text-[13px] font-medium text-slate-700">Essentials — $14/mo</span>
+              <span className="text-[13px] font-medium text-slate-700">Pro — €15/mo</span>
             </div>
             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
               Active
@@ -108,15 +113,15 @@ export default function BillingPage() {
           <p className="text-[13px] text-slate-400 mb-6">Simple pricing. No hidden fees. Upgrade anytime.</p>
 
           <div className="grid grid-cols-2 gap-6">
-            {/* ── Essentials ─────────────────────────────────────── */}
+            {/* ── Pro ─────────────────────────────────────────── */}
             <div
               className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
-                currentPlan === 'essentials'
+                currentPlan === 'pro'
                   ? 'border-ocean-400 ring-1 ring-ocean-100 bg-white shadow-card-hover'
                   : 'border-slate-200 bg-white shadow-card hover:shadow-card-hover'
               }`}
             >
-              {currentPlan === 'essentials' && (
+              {currentPlan === 'pro' && (
                 <div className="absolute -top-3 left-6">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-ocean-600 px-3.5 py-1 text-[11px] font-semibold text-white shadow-sm">
                     <Crown className="h-3 w-3" />
@@ -126,10 +131,10 @@ export default function BillingPage() {
               )}
 
               <div className="mb-6">
-                <h3 className="text-[17px] font-semibold text-slate-900">Essentials</h3>
+                <h3 className="text-[17px] font-semibold text-slate-900">Pro</h3>
                 <p className="text-[12px] text-slate-400 mt-1">Everything you need to create and send contracts.</p>
                 <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-[36px] font-bold text-slate-900 tracking-tight">$14</span>
+                  <span className="text-[36px] font-bold text-slate-900 tracking-tight">{'\u20ac'}15</span>
                   <span className="text-[14px] text-slate-400 font-medium">/mo</span>
                 </div>
               </div>
@@ -151,7 +156,7 @@ export default function BillingPage() {
 
               {/* Locked features teaser */}
               <div className="mb-6 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Available in Growth</p>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Available in Business</p>
                 <div className="space-y-2.5">
                   {[
                     { label: 'Smart Insights', icon: Brain },
@@ -172,22 +177,27 @@ export default function BillingPage() {
               </div>
 
               <button
-                disabled={currentPlan === 'essentials'}
-                className="w-full rounded-lg px-4 py-2.5 text-[13px] font-medium transition-colors cursor-not-allowed bg-slate-100 text-slate-400"
+                onClick={() => handleUpgrade('pro')}
+                disabled={currentPlan === 'pro' || checkoutLoading}
+                className={`w-full rounded-lg px-4 py-2.5 text-[13px] font-medium transition-colors ${
+                  currentPlan === 'pro'
+                    ? 'cursor-not-allowed bg-slate-100 text-slate-400'
+                    : 'bg-ocean-600 text-white hover:bg-ocean-700 shadow-sm'
+                }`}
               >
-                Current Plan
+                {currentPlan === 'pro' ? 'Current Plan' : checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
               </button>
             </div>
 
-            {/* ── Growth ─────────────────────────────────────────── */}
+            {/* ── Business ─────────────────────────────────────────── */}
             <div
               className={`relative flex flex-col rounded-2xl border p-7 transition-all ${
-                currentPlan === 'growth'
+                currentPlan === 'business'
                   ? 'border-ocean-400 ring-1 ring-ocean-100 bg-white shadow-card-hover'
                   : 'border-slate-200 bg-gradient-to-br from-white to-ocean-50/30 shadow-card hover:shadow-card-hover'
               }`}
             >
-              {currentPlan === 'growth' ? (
+              {currentPlan === 'business' ? (
                 <div className="absolute -top-3 left-6">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-ocean-600 px-3.5 py-1 text-[11px] font-semibold text-white shadow-sm">
                     <Crown className="h-3 w-3" />
@@ -204,10 +214,10 @@ export default function BillingPage() {
               )}
 
               <div className="mb-6">
-                <h3 className="text-[17px] font-semibold text-slate-900">Growth</h3>
+                <h3 className="text-[17px] font-semibold text-slate-900">Business</h3>
                 <p className="text-[12px] text-slate-400 mt-1">Close contracts faster with AI-powered intelligence.</p>
                 <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-[36px] font-bold text-slate-900 tracking-tight">$49</span>
+                  <span className="text-[36px] font-bold text-slate-900 tracking-tight">{'\u20ac'}49</span>
                   <span className="text-[14px] text-slate-400 font-medium">/mo</span>
                 </div>
               </div>
@@ -215,7 +225,7 @@ export default function BillingPage() {
               <ul className="mb-6 flex-1 space-y-3.5">
                 <li className="flex items-start gap-2.5">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                  <span className="text-[13px] text-slate-600 font-medium">Everything in Essentials</span>
+                  <span className="text-[13px] text-slate-600 font-medium">Everything in Pro</span>
                 </li>
                 {[
                   'Smart Insights — spot risks before they escalate',
@@ -247,7 +257,7 @@ export default function BillingPage() {
                 })}
               </div>
 
-              {currentPlan === 'growth' ? (
+              {currentPlan === 'business' ? (
                 <button
                   disabled
                   className="w-full rounded-lg px-4 py-2.5 text-[13px] font-medium cursor-not-allowed bg-slate-100 text-slate-400"
@@ -256,7 +266,7 @@ export default function BillingPage() {
                 </button>
               ) : (
                 <button
-                  onClick={handleUpgrade}
+                  onClick={() => handleUpgrade('business')}
                   disabled={checkoutLoading}
                   className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-[13px] font-semibold bg-ocean-600 text-white shadow-sm hover:bg-ocean-700 transition-colors disabled:opacity-60"
                 >
